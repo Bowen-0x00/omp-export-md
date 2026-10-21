@@ -3,12 +3,11 @@
   "version": "1.0.0",
   "description": "Clean, intelligent Markdown session exporter for Oh My Pi (omp)",
   "keywords": [
-    "oh-my-pi",
     "omp",
+    "oh-my-pi",
+    "pi-package",
     "markdown",
     "export",
-    "llm",
-    "extension",
     "obsidian",
     "notion"
   ],
@@ -22,6 +21,16 @@
   "main": "extensions/export-md.ts",
   "bin": {
     "omp2md": "bin/omp2md"
+  },
+  "omp": {
+    "extensions": [
+      "./extensions/export-md.ts"
+    ]
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/export-md.ts"
+    ]
   },
   "peerDependencies": {
     "@oh-my-pi/pi-coding-agent": ">=18.0.0"

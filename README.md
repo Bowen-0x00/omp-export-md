@@ -36,23 +36,31 @@
 
 ## 🚀 快速安装
 
-### 方式一：Git 克隆一键安装（推荐）
+### 方式一：OMP 原生命令一键安装（最简推荐 ⭐️）
 
+在任何终端中直接运行 OMP 原生包管理命令：
 ```bash
-# 1. 克隆本仓库
+omp install github:Bowen-0x00/omp-export-md
+```
+> 或通过完整 URL 安装：
+> ```bash
+> omp install https://github.com/Bowen-0x00/omp-export-md
+> ```
+
+### 方式二：Git 克隆一键安装（含离线命令行工具 omp2md）
+
+如果你同时需要安装独立的终端离线命令 `omp2md`（可直接在 shell 中导出刚退出的会话）：
+```bash
 git clone https://github.com/Bowen-0x00/omp-export-md.git
 cd omp-export-md
-
-# 2. 运行全局安装脚本（默认安装至 ~/.omp/agent/extensions 与 ~/.local/bin）
 ./install.sh
 ```
 
-### 方式二：单项目级安装
-如果你希望仅在特定项目下生效，可指定 `-p` 参数：
+### 方式三：单项目级安装
+如果你希望仅在特定工程目录下生效：
 ```bash
 ./install.sh -p /path/to/your/project
 ```
-
 ---
 
 ## 📖 使用指南
@@ -145,12 +153,14 @@ omp-export-md/
 ---
 
 ## 🗑️ 卸载
-
 ```bash
-# 全局卸载
+# 如果是通过 omp install 安装：
+omp plugin uninstall omp-export-md
+
+# 如果是通过 install.sh 脚本安装：
 ./uninstall.sh
 
-# 保留 omp2md 独立命令行工具，仅卸载 omp 插件
+# 保留 omp2md 独立命令行工具，仅卸载 omp 扩展
 ./uninstall.sh --keep-cli
 ```
 

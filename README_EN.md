@@ -36,23 +36,31 @@
 
 ## 🚀 Quick Installation
 
-### Method 1: Git Clone Installation (Recommended)
+### Method 1: OMP Native Command (Fastest & Recommended ⭐️)
 
+Run OMP's native package manager directly from any terminal:
 ```bash
-# 1. Clone this repository
+omp install github:Bowen-0x00/omp-export-md
+```
+> Or install via full URL:
+> ```bash
+> omp install https://github.com/Bowen-0x00/omp-export-md
+> ```
+
+### Method 2: Git Clone Installation (Includes Offline CLI `omp2md`)
+
+If you also want the standalone terminal command `omp2md` (to export sessions offline directly from your shell):
+```bash
 git clone https://github.com/Bowen-0x00/omp-export-md.git
 cd omp-export-md
-
-# 2. Run the global installer (installs to ~/.omp/agent/extensions & ~/.local/bin)
 ./install.sh
 ```
 
-### Method 2: Project-Scoped Installation
+### Method 3: Project-Scoped Installation
 If you prefer enabling this extension only within a specific project directory:
 ```bash
 ./install.sh -p /path/to/your/project
 ```
-
 ---
 
 ## 📖 Usage Guide
@@ -145,12 +153,14 @@ omp-export-md/
 ---
 
 ## 🗑️ Uninstallation
-
 ```bash
-# Global uninstallation
+# If installed via omp install:
+omp plugin uninstall omp-export-md
+
+# If installed via install.sh script:
 ./uninstall.sh
 
-# Keep the standalone omp2md tool while removing the OMP extension
+# Keep the standalone omp2md tool while removing the OMP extension:
 ./uninstall.sh --keep-cli
 ```
 
