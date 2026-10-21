@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+import sys
+import os
+import glob
+import json
+from datetime import datetime
+
+def find_latest_session(target_dir=None):
+    if not target_dir:
+        target_dir = os.getcwd()
+    else:
+        target_dir = os.path.abspath(target_dir)
+
+    # omp encodes path by replacing / with -
+    sanitized = target_dir.replace("/", "-")
+    base_dir = os.path.expanduser("~/.omp/agent/sessions")
+
+    # Match exact directory first
+    exact_path = os.path.join(base_dir, sanitized)
+    candidates = []
+    if os.path.exists(exact_path):
+        candidates.extend(glob.glob(os.path.join(exact_path, "*.jsonl")))
+
+    # If not found or empty, search all sessions sorted by mtime
+    if not candidates:
+        all_sessions = glob.glob(os.path.join(base_dir, "*", "*.jsonl"))
+        if not all_sessions:
+            return None
+        candidates = all_sessions
+
+    candidates.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    return candidates[0]
+
+def convert_jsonl_to_md(jsonl_path, out_path, include_tools=True, include_thinking=True):
+    lines = []
+    lines.append(f"# 📑 OMP 会话记录导出")
+    lines.append(f"- **源文件**: `{jsonl_path}`")
+    lines.append(f"- **转换时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    lines.append("---\n")
+
+    with open(jsonl_path, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except Exception:
+                continue
+
+            if entry.get("type") != "message":
+                continue
+
+            msg = entry.get("message", {})
+            role = msg.get("role")
+
+            if role == "user":
+                content = msg.get("content", "")
+                text = ""
+                if isinstance(content, str):
+                    text = content
+                elif isinstance(content, list):
+                    text = "".join(c.get("text", "") for c in content if c.get("type") == "text")
+                if text.strip():
+                    lines.append(f"## 👤 User\n\n{text.strip()}\n")
+
+            elif role == "assistant":
+                content = msg.get("content", "")
+                sub_lines = []
+                if isinstance(content, str):
+                    sub_lines.append(content)
+                elif isinstance(content, list):
+                    for c in content:
+                        c_type = c.get("type")
+                        if c_type == "thinking" and include_thinking:
+                            th = c.get("thinking", "").strip()
+                            if th:
+                                sub_lines.append(f"<details><summary>🧠 思考过程 (Thinking)</summary>\n\n{th}\n\n</details>")
+                        elif c_type == "text":
+                            t = c.get("text", "").strip()
+                            if t:
+                                sub_lines.append(t)
+                        elif c_type == "toolCall" and include_tools:
+                            t_name = c.get("name", "tool")
+                            t_args = json.dumps(c.get("arguments", {}), indent=2, ensure_ascii=False)
+                            sub_lines.append(f"> 🛠️ **工具调用: `{t_name}`**\n>\n> ```json\n> " + t_args.replace("\n", "\n> ") + "\n> ```")
+
+                if sub_lines:
+                    lines.append(f"## 🤖 Assistant\n\n" + "\n\n".join(sub_lines) + "\n")
+
+            elif role == "toolResult" and include_tools:
+                t_name = msg.get("toolName", "tool")
+                content = msg.get("content", "")
+                res_text = ""
+                if isinstance(content, str):
+                    res_text = content
+                elif isinstance(content, list):
+                    res_text = "\n".join(c.get("text", str(c)) if isinstance(c, dict) else str(c) for c in content)
+                if res_text.strip():
+                    lines.append(f"<details><summary>📦 执行结果 ({t_name})</summary>\n\n```\n{res_text.strip()}\n```\n\n</details>\n")
+
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+def extract_topic_from_session(jsonl_path):
+    import re
+    try:
+        with open(jsonl_path, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+                if entry.get("type") != "message":
+                    continue
+                msg = entry.get("message", {})
+                if msg.get("role") == "user":
+                    content = msg.get("content", "")
+                    text = ""
+                    if isinstance(content, str):
+                        text = content
+                    elif isinstance(content, list):
+                        text = "".join(c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") == "text")
+                    text = text.strip()
+                    if not text or text.startswith("/"):
+                        continue
+                    text = re.sub(r"^#+\s*", "", text)
+                    text = re.sub(r"^[-*+]\s*", "", text)
+                    first_clause = re.split(r"[，。！？\n,!?]", text)[0].strip() or text.split("\n")[0].strip()
+                    clean = re.sub(r'[<>:"/\\|?*`\'\s，。！？：；（）“”‘’【】《》、]+', "-", first_clause)
+                    clean = re.sub(r"-+", "-", clean).strip(".-_")
+                    if len(clean) >= 2:
+                        return clean[:30]
+    except Exception:
+        pass
+    return ""
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="📑 一键将 OMP 最近的会话导出为 Markdown")
+    parser.add_argument("session", nargs="?", help="session.jsonl 路径，默认自动匹配当前目录最近的会话")
+    parser.add_argument("-o", "--output", help="输出的 md 文件路径，默认输出到当前目录下的 omp-chat-<时间>.md")
+    parser.add_argument("--clean", "-c", action="store_true", help="纯净模式：不包含工具调用及思考过程")
+    parser.add_argument("--no-tools", action="store_true", help="不包含工具调用")
+    parser.add_argument("--no-thinking", action="store_true", help="不包含思考过程")
+
+    args = parser.parse_args()
+
+    session_path = args.session
+    if not session_path:
+        session_path = find_latest_session()
+        if not session_path:
+            print("❌ 未找到任何会话文件！")
+            sys.exit(1)
+
+    if not os.path.exists(session_path):
+        print(f"❌ 指定的文件不存在: {session_path}")
+        sys.exit(1)
+
+    out_path = args.output
+    if not out_path:
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        topic = extract_topic_from_session(session_path)
+        out_path = f"omp-chat-{topic}-{ts}.md" if topic else f"omp-chat-{ts}.md"
+    include_tools = not (args.clean or args.no_tools)
+    include_thinking = not (args.clean or args.no_thinking)
+
+    convert_jsonl_to_md(session_path, out_path, include_tools=include_tools, include_thinking=include_thinking)
+    print(f"✅ 成功导出到: {os.path.abspath(out_path)}")
+    print(f"📄 对应会话源文件: {session_path}")
+
+if __name__ == "__main__":
+    main()

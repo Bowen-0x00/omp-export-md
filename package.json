@@ -1,0 +1,29 @@
+{
+  "name": "omp-export-md",
+  "version": "1.0.0",
+  "description": "Clean, intelligent Markdown session exporter for Oh My Pi (omp)",
+  "keywords": [
+    "oh-my-pi",
+    "omp",
+    "markdown",
+    "export",
+    "llm",
+    "extension",
+    "obsidian",
+    "notion"
+  ],
+  "author": "Bowen-0x00",
+  "license": "MIT",
+  "homepage": "https://github.com/Bowen-0x00/omp-export-md#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bowen-0x00/omp-export-md.git"
+  },
+  "main": "extensions/export-md.ts",
+  "bin": {
+    "omp2md": "bin/omp2md"
+  },
+  "peerDependencies": {
+    "@oh-my-pi/pi-coding-agent": ">=18.0.0"
+  }
+}
